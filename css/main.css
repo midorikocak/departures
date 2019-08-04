@@ -289,12 +289,17 @@ th, td {
   padding: 8px;
 }
 
-header {
+#tableHead {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
   font-size: 6vh;
+}
+
+#table{
+  display: flex;
+  flex-direction: column;
 }
 
 .title {
@@ -341,3 +346,18 @@ tr td:last-child {
   color: #19be78;
 }
 
+hide {
+  display: none;
+}
+
+#screen{
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#screen img{
+  width: 50%;
+}

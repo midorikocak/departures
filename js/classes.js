@@ -1,13 +1,15 @@
 var actual_JSON;
 var flatClasses = [];
 var classesNow;
-var now = moment('9:34 am', 'h:mm a');
+//var now = moment('09:10 am', 'hh:mm a');
+//var weekDay = 1;
 
-//var weekDay = parseInt(now.format('d'));
-var weekDay = 0;
+var now = moment();
+var weekDay = now.format('d');
 
 var after15mins = moment(now).add(16, 'minutes');
-var after30mins = moment(now).add(30, 'minutes');
+var after30mins = moment(now).add(31, 'minutes');
+var before30mins = moment(now).subtract(31, 'minutes');
 var before15mins = moment(now).subtract(16, 'minutes');
 
 function loadJSON(callback) {
@@ -42,47 +44,89 @@ function init() {
 
       })
     });
-    classesNow = flatClasses.filter(function (i) {
-      return (i.start.isBetween(before15mins, after15mins) && (i.Days == weekDay))
-    });
-    setDateTime();
 
     var startItem = 0;
-    var totalItems = classesNow.length;
     var itemsPerPage = 8;
     var currentPage = 1;
 
-    var totalPages = Math.ceil(totalItems / itemsPerPage);
 
     setInterval(function render() {
-      //console.log(startItem)
-      renderLessons(startItem, startItem + itemsPerPage);
-      startItem += itemsPerPage;
+      setDateTime();
+      classesNow = flatClasses.filter(function (i) {
+        return (i.start.isBetween(before30mins, after30mins) && (i.Days === weekDay))
+      }).sort(compare);
+      var totalItems = classesNow.length;
+      var totalPages = Math.ceil(totalItems / itemsPerPage);
 
-      document.getElementById("page").innerHTML = currentPage + "/" + totalPages;
-      currentPage++;
-      if (startItem  >= totalItems) startItem = 0;
-      if (currentPage  > totalPages) currentPage = 1;
+      if (classesNow.length === 0) {
+        image('img/screen.jpg');
+      } else {
+
+        //console.log(startItem)
+        renderLessons(startItem, startItem + itemsPerPage);
+        startItem += itemsPerPage;
+
+        document.getElementById("page").innerHTML = currentPage + "/" + totalPages;
+        currentPage++;
+        if (startItem >= classesNow.length) startItem = 0;
+        if (currentPage > totalPages) currentPage = 1;
+      }
       return render;
     }(), 5000);
   });
 }
 
+function test(num){
+  weekDay = num || 1;
+}
+
+function compare(a, b) {
+  if (a.start.isBefore(b.start)) {
+    return -1;
+  }
+  if (a.start.isAfter(b.start)) {
+    return 1;
+  }
+  return 0;
+}
+
+function image(imgName) {
+  var imageDiv = document.getElementById("screen");
+  imageDiv.innerHTML = "";
+  show("screen");
+  hide("table");
+  //dynamically add an image and set its attribute
+  var img = document.createElement("img");
+  img.src = imgName;
+  img.id = "image";
+  imageDiv.appendChild(img);
+}
+
+function hide(tag) {
+  document.getElementById(tag).style.display = "none";
+  ;
+}
+
+function show(tag) {
+  document.getElementById(tag).style.display = "flex";
+  ;
+}
+
 function getStart(timeString) {
-  return moment(timeString.split(' - ')[0], "h:mm a");
+  return moment(timeString.split(' - ')[0], "HH:mm a");
 }
 
 function getEnd(timeString) {
-  return moment(timeString.split(' - ')[1], "h:mm a");
+  return moment(timeString.split(' - ')[1], "HH:mm a");
 }
 
 function getWeekLetter(weekNumber) {
-  var days = "MTWRFSU";
+  var days = "UMTWRFS";
   return days[weekNumber];
 }
 
 function getWeekNumber(weekLetter) {
-  var days = "MTWRFSU";
+  var days = "UMTWRFS";
   return days.indexOf(weekLetter);
 }
 
@@ -90,18 +134,21 @@ function getStatus(start, end, now) {
   if (now.isBetween(start, end) || (now.diff(start, 'minutes') === 0)) {
     return 'started';
   } else if (start.diff(now, 'minutes') <= 5) {
+    console.log()
     return 'starts in 5 mins';
   } else if (start.diff(now, 'minutes') <= 10) {
     return 'starts in 10 mins';
   } else if (start.diff(now, 'minutes') <= 15) {
     return 'starts in 15 mins';
+  } else if (start.diff(now, 'minutes') <= 30) {
+    return 'starts in 30 mins';
   }
 }
 
 function getLesson(section) {
   return {
-    "starts": section.start.format('hh:mm'),
-    "ends": section.end.format('hh:mm'),
+    "starts": section.start.format('HH:mm'),
+    "ends": section.end.format('HH:mm'),
     "code": section.code,
     "lesson": section.name,
     "section": section.section,
@@ -146,6 +193,8 @@ function renderLesson(section) {
 }
 
 function renderLessons(startItem, lastItem) {
+  hide("screen");
+  show("table");
   document.getElementById("lessons").innerHTML = "";
   var classes = classesNow.slice(startItem, lastItem);
   var rows = classes.map(d => renderLesson(getLesson(d))).join('');
@@ -154,7 +203,7 @@ function renderLessons(startItem, lastItem) {
 
 function setDateTime() {
   document.getElementById("date").innerHTML = now.format('DD/MM/YYYY');
-  document.getElementById("time").innerHTML = now.format('hh:mm');
+  document.getElementById("time").innerHTML = now.format('HH:mm');
 }
 
 init();
