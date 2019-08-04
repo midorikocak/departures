@@ -48,7 +48,7 @@ function init() {
     setDateTime();
 
     var startItem = 0;
-    var totalItems = 32;
+    var totalItems = classesNow.length;
     var itemsPerPage = 8;
     var currentPage = 1;
 
