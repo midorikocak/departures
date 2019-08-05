@@ -13,7 +13,7 @@
 html {
   color: white;
   background-color: black;
-  font-size: 2vh;
+  font-size: 1.2vw;
   font-weight: 600;
   line-height: 1.4;
   font-family: "Arial";
@@ -294,7 +294,7 @@ th, td {
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
-  font-size: 6vh;
+  font-size: 3vw;
 }
 
 #table{
