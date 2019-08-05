@@ -5,7 +5,7 @@ var classesNow;
 //var weekDay = 1;
 
 var now = moment();
-var weekDay = now.format('d');
+var weekDay = parseInt(now.format('d'));
 
 var after15mins = moment(now).add(16, 'minutes');
 var after30mins = moment(now).add(31, 'minutes');
