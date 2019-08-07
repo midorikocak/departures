@@ -1,16 +1,8 @@
 var actual_JSON;
-var flatClasses = [];
-var classesNow;
-//var now = moment('09:10 am', 'hh:mm a');
-//var weekDay = 1;
 
-var now = moment();
-var weekDay = parseInt(now.format('d'));
-
-var after15mins = moment(now).add(16, 'minutes');
-var after30mins = moment(now).add(31, 'minutes');
-var before30mins = moment(now).subtract(31, 'minutes');
-var before15mins = moment(now).subtract(16, 'minutes');
+var startItem = 0;
+var itemsPerPage = 8;
+var currentPage = 1;
 
 function loadJSON(callback) {
   var xobj = new XMLHttpRequest();
@@ -25,58 +17,94 @@ function loadJSON(callback) {
   xobj.send(null);
 }
 
+/*
+ 1. load json
+ 2. flatten items
+ -- every 5 seconds --
+ 3. Get time and weekday
+ 4. filter based on days and time
+ 5. Clean the pool
+ 6. Render
+ */
+
 function init() {
+
   loadJSON(function (response) {
     // Parse JSON string into object
     actual_JSON = JSON.parse(response);
-    actual_JSON.forEach(function (item) {
-      item.classes.forEach(function (section) {
-        var lesson = Object.assign({}, item);
-        delete lesson.classes;
-
-        section.Days = getWeekNumber(section.Days);
-        section.start = getStart(section.Time);
-        section.end = getEnd(section.Time);
-
-        section.status = getStatus(section.start, section.end, now);
-
-        flatClasses.push(Object.assign(lesson, section));
-
-      })
-    });
-
-    var startItem = 0;
-    var itemsPerPage = 8;
-    var currentPage = 1;
 
 
     setInterval(function render() {
-      setDateTime();
-      classesNow = flatClasses.filter(function (i) {
-        return (i.start.isBetween(before30mins, after30mins) && (i.Days === weekDay))
-      }).sort(compare);
-      var totalItems = classesNow.length;
-      var totalPages = Math.ceil(totalItems / itemsPerPage);
 
-      if (classesNow.length === 0) {
-        image('img/screen.jpg');
-      } else {
+      var time = getTime();
+      var data = filterClasses(getFlatClasses(actual_JSON), time);
+      paginate(data);
 
-        //console.log(startItem)
-        renderLessons(startItem, startItem + itemsPerPage);
-        startItem += itemsPerPage;
-
-        document.getElementById("page").innerHTML = currentPage + "/" + totalPages;
-        currentPage++;
-        if (startItem >= classesNow.length) startItem = 0;
-        if (currentPage > totalPages) currentPage = 1;
-      }
       return render;
     }(), 5000);
   });
 }
 
-function test(num){
+function getFlatClasses(loadedJson) {
+  var flatClasses = [];
+  loadedJson.forEach(function (item) {
+    item.classes.forEach(
+      function (section) {
+        var lesson = Object.assign({}, item);
+        delete lesson.classes;
+        section.weekDay = getWeekNumber(section.Days);
+        section.start = getStart(section.Time);
+        section.end = getEnd(section.Time);
+        flatClasses.push(Object.assign(lesson, section));
+      }
+    )
+  });
+  return flatClasses;
+}
+
+function filterClasses(classes, time) {
+  var filteredClasses = [];
+  classes.forEach(
+    function (i) {
+      if (i.start.isBetween(time.start, time.end) && (i.weekDay == time.weekDay)) {
+        i.status = getStatus(i.start, time.end, time.now);
+        filteredClasses.push(i);
+      }
+    }
+  );
+  return filteredClasses.sort(compare);
+}
+
+function getTime() {
+  var now = moment();
+  setDateTime(now);
+  return {
+    "now": now,
+    "start": moment(now).subtract(31, 'minutes'),
+    "end": moment(now).add(31, 'minutes'),
+    "weekDay": parseInt(now.format("d"))
+  }
+}
+
+function paginate(classes) {
+  if (classes.length === 0) {
+    image('img/screen.jpg');
+  } else {
+
+    var totalItems = classes.length;
+    var totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    renderLessons(classes, startItem, startItem + itemsPerPage);
+    startItem += itemsPerPage;
+
+    document.getElementById("page").innerHTML = currentPage + "/" + totalPages;
+    currentPage++;
+    if (startItem >= classes.length) startItem = 0;
+    if (currentPage > totalPages) currentPage = 1;
+  }
+}
+
+function test(num) {
   weekDay = num || 1;
 }
 
@@ -134,7 +162,6 @@ function getStatus(start, end, now) {
   if (now.isBetween(start, end) || (now.diff(start, 'minutes') === 0)) {
     return 'started';
   } else if (start.diff(now, 'minutes') <= 5) {
-    console.log()
     return 'starts in 5 mins';
   } else if (start.diff(now, 'minutes') <= 10) {
     return 'starts in 10 mins';
@@ -142,6 +169,8 @@ function getStatus(start, end, now) {
     return 'starts in 15 mins';
   } else if (start.diff(now, 'minutes') <= 30) {
     return 'starts in 30 mins';
+  } else {
+    return "";
   }
 }
 
@@ -176,7 +205,7 @@ function getFacultyShortname(facultyText) {
 }
 
 function renderLesson(section) {
-  var section, x, txt = "";
+  var x, txt = "";
   txt += "<tr>"
   for (x in section) {
     var banner = x.toLowerCase();
@@ -192,16 +221,16 @@ function renderLesson(section) {
   return txt;
 }
 
-function renderLessons(startItem, lastItem) {
+function renderLessons(allClasses, startItem, lastItem) {
   hide("screen");
   show("table");
   document.getElementById("lessons").innerHTML = "";
-  var classes = classesNow.slice(startItem, lastItem);
+  var classes = allClasses.slice(startItem, lastItem);
   var rows = classes.map(d => renderLesson(getLesson(d))).join('');
   document.getElementById("lessons").innerHTML = rows;
 }
 
-function setDateTime() {
+function setDateTime(now) {
   document.getElementById("date").innerHTML = now.format('DD/MM/YYYY');
   document.getElementById("time").innerHTML = now.format('HH:mm');
 }
